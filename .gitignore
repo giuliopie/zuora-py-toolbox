@@ -10,6 +10,8 @@ __pycache__/
 .Python
 env/
 build/
+db/migrations/
+db/seeds/
 develop-eggs/
 dist/
 downloads/
