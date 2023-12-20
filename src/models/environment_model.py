@@ -6,5 +6,5 @@ class Environment(db.Model):
     base_endpoint = db.Column(db.String(512), unique=False, nullable=False)
     client_id = db.Column(db.String(512), unique=True, nullable=False)
     client_secret = db.Column(db.String(512), unique=True, nullable=False)
-    bearer_token = db.Column(db.String(512), unique=True, nullable=False)
+    bearer_token = db.Column(db.String(512), unique=True, nullable=True)
 
