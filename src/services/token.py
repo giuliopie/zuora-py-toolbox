@@ -9,7 +9,7 @@ class Token:
         self.client_id = client_id
         self.client_secret = client_secret
 
-    def set_bearer_token(self):
+    def __set_bearer_token(self):
         api_url = os.environ.get("Z_SANDBOX_BASE_URL") + self.RESOURCE_PATH
         data = {
             "client_id": self.client_id,
@@ -26,4 +26,4 @@ class Token:
         return formResponse.json()
 
     def get_access_token(self):
-        return self.set_bearer_token()
+        return self.__set_bearer_token()
