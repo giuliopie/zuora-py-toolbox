@@ -31,5 +31,4 @@ def deploy():
             
         with open('storage/tmp/' + path + '/' + basename, 'wb') as f:
             f.write(response.content)
-
-    return 200
+    return "200"
