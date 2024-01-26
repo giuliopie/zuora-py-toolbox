@@ -7,8 +7,8 @@ import json
 
 
 
-@app.route('/api/deploy', methods=['POST'])
-def deploy():
+@app.route('/api/release-package/store', methods=['POST'])
+def storeReleasePackage():
     json_data = request.get_json()
 
     BITBUCKET_ENDPOINT = os.environ.get("BITBUCKET_ENDPOINT")
