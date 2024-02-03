@@ -23,7 +23,7 @@ class Token:
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
         )
-        return formResponse.json()
+        return formResponse.json()['access_token']
 
     def get_access_token(self):
         return self.__set_bearer_token()
