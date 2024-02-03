@@ -4,8 +4,10 @@ from urllib.request import urlretrieve
 import os
 import requests
 import json
+from src.utils import Utils
+from src.controllers.workflow import WorkflowController as Workflow
 
-
+tmp_directory = 'storage/tmp/'
 
 @app.route('/api/release-package/store', methods=['POST'])
 def storeReleasePackage():
@@ -26,9 +28,34 @@ def storeReleasePackage():
         basename = os.path.basename(url)
         path = file.replace(basename, '')
         
-        if not os.path.exists("storage/tmp/"+ path): 
-            os.makedirs("storage/tmp/"+ path)
+        if not os.path.exists(tmp_directory + path): 
+            os.makedirs(tmp_directory + path)
             
-        with open('storage/tmp/' + path + '/' + basename, 'wb') as f:
+        with open(tmp_directory + path + '/' + basename, 'wb') as f:
             f.write(response.content)
     return "200"
+
+@app.route('/api/release-package/deploy', methods=["POST"])
+def deployReleasePackage():
+    module = 'workflows'
+
+    wf = Workflow()
+    wf_list = wf.getWorkflowFromTargetEnvironment()
+    
+    workflow_files = os.listdir(tmp_directory + module)
+
+    for workflow in workflow_files:
+        result = next((obj for obj in wf_list if obj['name'] == workflow.replace('.json', '')), None)
+        file_path = tmp_directory + module + '/' + workflow
+        wf_version = str(json.load(open(file_path, 'r'))['workflow']['version'])
+
+    if result != None:
+        wf_id = str(result['id'])
+        wf.importNewWorflowVersionToTargetEnvironment(wf_id, wf_version, file_path)
+    else:
+        wf.importNewWorflowToTargetEnvironment(wf_version, file_path)
+
+    return "200"
+
+    
+
