@@ -38,7 +38,7 @@ class WorkflowController:
 
         return workflow_list
 
-    def importNewWorflowVersionToTargetEnvironment(self, workflow_id, version, file_path):
+    def importNewWorflowVersionToTargetEnvironment(self, bearer_token, workflow_id, version, file_path):
         with open(file_path, 'r') as file:
             json_data = json.load(file)
 
@@ -55,13 +55,13 @@ class WorkflowController:
                 'Accept-Encoding': 'gzip, deflate',
                 'Accept': 'application/json; charset=utf-8',
                 'Content-Type': 'application/json; charset=utf-8',
-                'Authorization': 'Bearer ' + os.environ.get("TARGET_BEARER_TOKEN")
+                'Authorization': 'Bearer ' + bearer_token
             }
         )
 
         return response.json()
     
-    def importNewWorflowToTargetEnvironment(self, version, file_path):
+    def importNewWorflowToTargetEnvironment(self, bearer_token, version, file_path):
         with open(file_path, 'r') as file:
             json_data = json.load(file)
 
@@ -78,7 +78,7 @@ class WorkflowController:
                 'Accept-Encoding': 'gzip, deflate',
                 'Accept': 'application/json; charset=utf-8',
                 'Content-Type': 'application/json; charset=utf-8',
-                'Authorization': 'Bearer ' + os.environ.get("TARGET_BEARER_TOKEN")
+                'Authorization': 'Bearer ' + bearer_token
             }
         )
 
