@@ -4,6 +4,11 @@ from urllib.request import urlretrieve
 import os
 import requests
 import json
+
+from db.seeds.SBX4 import SBX4
+from db.seeds.SBX5 import SBX5
+
+from src.services.token import Token
 from src.utils import Utils
 from src.controllers.workflow import WorkflowController as Workflow
 
@@ -39,6 +44,22 @@ def storeReleasePackage():
 def deployReleasePackage():
     module = 'workflows'
 
+    target_environment = request.get_json()['targetEnvironment']
+
+    if target_environment == 'dev':
+            print('DEV-SBX5')
+            environment = SBX5()
+    elif target_environment == 'uat':
+            print('UAT-SBX4')
+            environment = SBX4()
+    elif target_environment == 'sit':
+            print('SIT-SBX2')
+    elif target_environment == 'main':
+            print('PROD')
+    
+    token = Token(environment.client_id, environment.client_secret)
+    bearer_token = token.get_access_token()
+
     wf = Workflow()
     wf_list = wf.getWorkflowFromTargetEnvironment()
     
@@ -51,9 +72,9 @@ def deployReleasePackage():
 
     if result != None:
         wf_id = str(result['id'])
-        wf.importNewWorflowVersionToTargetEnvironment(wf_id, wf_version, file_path)
+        wf.importNewWorflowVersionToTargetEnvironment(bearer_token, wf_id, wf_version, file_path)
     else:
-        wf.importNewWorflowToTargetEnvironment(wf_version, file_path)
+        wf.importNewWorflowToTargetEnvironment(bearer_token, wf_version, file_path)
 
     return "200"
 
