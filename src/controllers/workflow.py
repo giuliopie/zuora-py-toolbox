@@ -8,7 +8,7 @@ class WorkflowController:
     api_path_import = '/import'
     api_path_import_version = '/{workflow_id}/versions/import'
     
-    def getWorkflowFromTargetEnvironment(self):
+    def getWorkflowFromTargetEnvironment(self, bearer_token):
         workflow_list = []
         page_counter = 1
 
@@ -21,7 +21,7 @@ class WorkflowController:
                 },
                 headers = {
                     'Content-Type': 'application/json; charset=utf-8',
-                    'Authorization': 'Bearer ' + os.environ.get("TARGET_BEARER_TOKEN")
+                    'Authorization': 'Bearer ' + bearer_token
                 }
             )
             page_counter = page_counter + 1
