@@ -1,0 +1,12 @@
+first command to init everything (env, requirements etc..)
+source init_setup.sh
+
+in file init rows from 36 to 50 makes me insert record of SBX5 in table
+
+
+flask db init
+flask db migrate
+flask db upgrade
+
+flask seed_db
+flask db upgrade
