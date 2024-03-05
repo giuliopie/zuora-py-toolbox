@@ -42,6 +42,7 @@ def storeReleasePackage():
 
 @app.route('/api/release-package/deploy', methods=["POST"])
 def deployReleasePackage():
+    # Set here the allowed module for deploy as array
     module = 'workflows'
 
     target_environment = request.get_json()['targetEnvironment']
@@ -61,7 +62,7 @@ def deployReleasePackage():
     bearer_token = token.get_access_token()
 
     wf = Workflow()
-    wf_list = wf.getWorkflowFromTargetEnvironment()
+    wf_list = wf.getWorkflowFromTargetEnvironment(bearer_token)
     
     workflow_files = os.listdir(tmp_directory + module)
 
