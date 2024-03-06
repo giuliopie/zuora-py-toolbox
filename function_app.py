@@ -8,6 +8,7 @@ from db.seeds.SBX2 import SBX2
 from db.seeds.PROD import PROD
 
 from src.services.token import Token
+from src.controllers.workflow import WorkflowController as Workflow
 
 import azure.functions as func
 import logging
@@ -86,6 +87,45 @@ def releasePackageStore(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="release-package/deploy")
 def releasePackageDeploy(req: func.HttpRequest) -> func.HttpResponse:
+    # Set here the allowed module for deploy as array
+    module = 'workflows'
+
+    req_body = req.get_json()
+    target_environment = req_body.get('targetEnvironment')
+
+     # environment = {}
+    if target_environment == 'dev':
+        logging.info('DEV-SBX5')
+        environment = SBX5()
+    elif target_environment == 'uat':
+        logging.info('UAT-SBX4')
+        environment = SBX4()
+    elif target_environment == 'sit':
+        logging.info('SIT-SBX2')
+        environment = SBX2()
+    elif target_environment == 'main':
+        logging.info('PROD')
+        environment = PROD()
+
+    token = Token()
+    bearer_token = token.get_access_token()
+    
+    wf = Workflow()
+    wf_list = wf.getWorkflowFromTargetEnvironment(bearer_token)
+    
+    workflow_files = os.listdir(tmp_directory + module)
+
+    for workflow in workflow_files:
+        result = next((obj for obj in wf_list if obj['name'] == workflow.replace('.json', '')), None)
+        file_path = tmp_directory + module + '/' + workflow
+        wf_version = str(json.load(open(file_path, 'r'))['workflow']['version'])
+
+    if result != None:
+        wf_id = str(result['id'])
+        wf.importNewWorflowVersionToTargetEnvironment(bearer_token, wf_id, wf_version, file_path)
+    else:
+        wf.importNewWorflowToTargetEnvironment(bearer_token, wf_version, file_path)
+
     try:
         return func.HttpResponse("Success", status_code=200)
     except ValueError as e:
