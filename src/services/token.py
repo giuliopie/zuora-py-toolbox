@@ -16,14 +16,21 @@ class Token:
             "client_secret": self.client_secret,
             "grant_type": "client_credentials"
         }
-        formResponse = requests.post(
+        form_response = requests.post(
             api_url,
             data=data,
             headers= {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
         )
-        return formResponse.json()['access_token']
+        json_data = form_response.json()
+
+        access_token = json_data.get('access_token')
+
+        if access_token is not None:
+            return access_token
+        else:
+            return None
 
     def get_access_token(self):
         return self.__set_bearer_token()
