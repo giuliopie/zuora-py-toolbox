@@ -4,7 +4,6 @@ import json
 
 from db.seeds.SBX5 import SBX5
 from db.seeds.SBX4 import SBX4
-from db.seeds.SBX3 import SBX3
 from db.seeds.SBX2 import SBX2
 from db.seeds.PROD import PROD
 
@@ -87,6 +86,63 @@ def releasePackageStore(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="release-package/deploy")
 def releasePackageDeploy(req: func.HttpRequest) -> func.HttpResponse:
+    try:
+        return func.HttpResponse("Success", status_code=200)
+    except ValueError as e:
+        return func.HttpResponse(f"Errore: {str(e)}", status_code=400)
+
+@app.route(route="refresh/standard/objects")
+def refreshStandardObjects(req: func.HttpRequest) -> func.HttpResponse:
+
+    req_body = req.get_json()
+    target_environment = req_body.get('targetEnvironment')
+
+     # environment = {}
+    if target_environment == 'dev':
+        logging.info('DEV-SBX5')
+        environment = SBX5()
+    elif target_environment == 'uat':
+        logging.info('UAT-SBX4')
+        environment = SBX4()
+    elif target_environment == 'sit':
+        logging.info('SIT-SBX2')
+        environment = SBX2()
+    elif target_environment == 'main':
+        logging.info('PROD')
+        environment = PROD()
+
+    token = Token()
+    bearer_token = token.get_access_token()
+
+    actionQueryPayload = {
+        "queryString": "SELECT Id FROM Account"
+    }
+
+    url = environment.base_endpoint + 'v1/action/query'
+    accounts = requests.post(
+        url,
+        json=actionQueryPayload,
+        headers= {
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept': 'application/json; charset=utf-8',
+            'Content-Type': 'application/json; charset=utf-8',
+            'Authorization': 'Bearer ' + bearer_token
+        }
+    )
+
+    accounts = json.loads(accounts.content).get('records')
+    for account in accounts:
+        url = environment.base_endpoint + 'v1/accounts/' + account.get('Id')
+        requests.delete(
+            url,
+            headers= {
+                'Accept-Encoding': 'gzip, deflate',
+                'Accept': 'application/json; charset=utf-8',
+                'Content-Type': 'application/json; charset=utf-8',
+                'Authorization': 'Bearer ' + bearer_token
+            }
+        )
+
     try:
         return func.HttpResponse("Success", status_code=200)
     except ValueError as e:
