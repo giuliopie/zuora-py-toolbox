@@ -11,6 +11,7 @@ from src.services.token import Token
 from src.controllers.workflow import WorkflowController as Workflow
 
 import azure.functions as func
+from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 import logging
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
@@ -20,9 +21,7 @@ tmp_directory = 'storage/tmp/'
 @app.route(route="release-package/store")
 def releasePackageStore(req: func.HttpRequest) -> func.HttpResponse:
     json_data = req.get_json()['releasePackage']
-    logging.info(json_data)
     source_environment = json_data['sourceEnvironment']
-    logging.info(source_environment)
 
     # environment = {}
     if source_environment == 'dev':
@@ -43,43 +42,28 @@ def releasePackageStore(req: func.HttpRequest) -> func.HttpResponse:
     RAW_ENDPOINT = environment.bitbucket_raw
 
     files = json_data['pullRequestFiles']
-    # those should be defined as azure env variables
-    logging.info(BITBUCKET_ENDPOINT)
-    logging.info(BITBUCKET_REPOSITORY)
-    ################################################ 
-    logging.info(RAW_ENDPOINT)
-    logging.info(files)
 
     headers = {"User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36'}
 
-    for file in files:   
-        logging.info(file)
-
+    for file in files:
         url = BITBUCKET_ENDPOINT + BITBUCKET_REPOSITORY + RAW_ENDPOINT + file
-        logging.info(url)
         response = requests.get(url, headers=headers)
+        json_content = response.json()
 
-        basename = os.path.basename(url)
-        logging.info("BASENAME:")
-        logging.info(basename)
-
-        path = file.replace(basename, '')
-        logging.info(path)
-
-        if not os.path.exists(tmp_directory + path): 
-            os.makedirs(tmp_directory + path)
-        logging.info("DIR Created")
+        storage_connection_string = os.environ["AzureWebJobsStorage"]
+        # Create BLOB Client Service
+        blob_service_client = BlobServiceClient.from_connection_string(storage_connection_string)
         
-        logging.info(tmp_directory + path + basename)
-        logging.info(response.content)
+        container_name = "testcicd"
+        blob_name = file
 
-        try:
-            with open(tmp_directory + path + basename, 'wb') as f:
-                f.write(response.content)
-            logging.info("File Written")
-        except Exception as e:
-            logging.error(f"Error writing file: {str(e)}")
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+        # Get Container
+        container_client = blob_service_client.get_container_client(container_name)
+
+        # Create BLOB
+        blob_client = container_client.get_blob_client(blob_name)
+        blob_client.upload_blob(json.dumps(json_content), overwrite=True)
+
     try:
         return func.HttpResponse("Success", status_code=200)
     except ValueError as e:
@@ -109,7 +93,7 @@ def releasePackageDeploy(req: func.HttpRequest) -> func.HttpResponse:
 
     token = Token()
     bearer_token = token.get_access_token()
-    
+
     wf = Workflow()
     wf_list = wf.getWorkflowFromTargetEnvironment(bearer_token)
     
