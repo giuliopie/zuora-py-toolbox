@@ -18,24 +18,27 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 tmp_directory = 'storage/tmp/'
 
+def getEnvironment(environment):
+    if environment == 'dev':
+        logging.info('DEV-SBX5')
+        environment = SBX5()
+    elif environment == 'uat':
+        logging.info('UAT-SBX4')
+        environment = SBX4()
+    elif environment == 'sit':
+        logging.info('SIT-SBX2')
+        environment = SBX2()
+    elif environment == 'main':
+        logging.info('PROD')
+        environment = PROD()
+    return environment
+
 @app.route(route="release-package/store")
 def releasePackageStore(req: func.HttpRequest) -> func.HttpResponse:
     json_data = req.get_json()['releasePackage']
     source_environment = json_data['sourceEnvironment']
 
-    # environment = {}
-    if source_environment == 'dev':
-        logging.info('DEV-SBX5')
-        environment = SBX5()
-    elif source_environment == 'uat':
-        logging.info('UAT-SBX4')
-        environment = SBX4()
-    elif source_environment == 'sit':
-        logging.info('SIT-SBX2')
-        environment = SBX2()
-    elif source_environment == 'main':
-        logging.info('PROD')
-        environment = PROD()
+    environment = getEnvironment(source_environment)
 
     BITBUCKET_ENDPOINT = os.environ.get("BITBUCKET_ENDPOINT")
     BITBUCKET_REPOSITORY = os.environ.get("BITBUCKET_REPOSITORY")
@@ -77,21 +80,9 @@ def releasePackageDeploy(req: func.HttpRequest) -> func.HttpResponse:
     req_body = req.get_json()
     target_environment = req_body.get('targetEnvironment')
 
-     # environment = {}
-    if target_environment == 'dev':
-        logging.info('DEV-SBX5')
-        environment = SBX5()
-    elif target_environment == 'uat':
-        logging.info('UAT-SBX4')
-        environment = SBX4()
-    elif target_environment == 'sit':
-        logging.info('SIT-SBX2')
-        environment = SBX2()
-    elif target_environment == 'main':
-        logging.info('PROD')
-        environment = PROD()
+    environment = getEnvironment(target_environment)
 
-    token = Token()
+    token = Token(environment.client_id, environment.client_secret)
     bearer_token = token.get_access_token()
 
     wf = Workflow()
@@ -121,21 +112,9 @@ def refreshStandardObjects(req: func.HttpRequest) -> func.HttpResponse:
     req_body = req.get_json()
     target_environment = req_body.get('targetEnvironment')
 
-     # environment = {}
-    if target_environment == 'dev':
-        logging.info('DEV-SBX5')
-        environment = SBX5()
-    elif target_environment == 'uat':
-        logging.info('UAT-SBX4')
-        environment = SBX4()
-    elif target_environment == 'sit':
-        logging.info('SIT-SBX2')
-        environment = SBX2()
-    elif target_environment == 'main':
-        logging.info('PROD')
-        environment = PROD()
+    environment = getEnvironment(target_environment)
 
-    token = Token()
+    token = Token(environment.client_id, environment.client_secret)
     bearer_token = token.get_access_token()
 
     actionQueryPayload = {
