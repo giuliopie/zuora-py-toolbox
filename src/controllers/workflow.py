@@ -2,6 +2,8 @@ import os
 import requests
 import json
 
+from src.utils import container_client
+
 class WorkflowController:
 
     api_path = os.environ.get("Z_SANDBOX_BASE_URL") + 'workflows'
@@ -39,14 +41,15 @@ class WorkflowController:
         return workflow_list
 
     def importNewWorflowVersionToTargetEnvironment(self, bearer_token, workflow_id, version, file_path):
-        with open(file_path, 'r') as file:
-            json_data = json.load(file)
+        blob_client = container_client.get_blob_client(file_path)
+        blob_content = blob_client.download_blob().readall()
+        json_data = json.load(blob_content)
 
         url = self.api_path + self.api_path_import_version.replace('{workflow_id}', workflow_id)
 
         response = requests.post(
             url,
-            json=json_data,
+            json = json_data,
             params = {
                 "activate": 'true',
                 "version": version
@@ -62,14 +65,15 @@ class WorkflowController:
         return response.json()
     
     def importNewWorflowToTargetEnvironment(self, bearer_token, version, file_path):
-        with open(file_path, 'r') as file:
-            json_data = json.load(file)
+        blob_client = container_client.get_blob_client(file_path)
+        blob_content = blob_client.download_blob().readall()
+        json_data = json.loads(blob_content)
 
         url = self.api_path + self.api_path_import
 
         response = requests.post(
             url,
-            json=json_data,
+            json = json_data,
             params = {
                 "activate": 'true',
                 "version": version
@@ -82,6 +86,6 @@ class WorkflowController:
             }
         )
 
-        return response.json()
+        return response
 
 

@@ -11,12 +11,11 @@ from src.services.token import Token
 from src.controllers.workflow import WorkflowController as Workflow
 
 import azure.functions as func
-from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 import logging
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
-tmp_directory = 'storage/tmp/'
+from src.utils import container_client
 
 def getEnvironment(environment):
     if environment == 'dev':
@@ -53,16 +52,7 @@ def releasePackageStore(req: func.HttpRequest) -> func.HttpResponse:
         response = requests.get(url, headers=headers)
         json_content = response.json()
 
-        storage_connection_string = os.environ["AzureWebJobsStorage"]
-        # Create BLOB Client Service
-        blob_service_client = BlobServiceClient.from_connection_string(storage_connection_string)
-        
-        container_name = "testcicd"
         blob_name = file
-
-        # Get Container
-        container_client = blob_service_client.get_container_client(container_name)
-
         # Create BLOB
         blob_client = container_client.get_blob_client(blob_name)
         blob_client.upload_blob(json.dumps(json_content), overwrite=True)
@@ -87,19 +77,30 @@ def releasePackageDeploy(req: func.HttpRequest) -> func.HttpResponse:
 
     wf = Workflow()
     wf_list = wf.getWorkflowFromTargetEnvironment(bearer_token)
-    
-    workflow_files = os.listdir(tmp_directory + module)
 
-    for workflow in workflow_files:
-        result = next((obj for obj in wf_list if obj['name'] == workflow.replace('.json', '')), None)
-        file_path = tmp_directory + module + '/' + workflow
-        wf_version = str(json.load(open(file_path, 'r'))['workflow']['version'])
+    # Get all blobs with the starting prefix
+    blobs = container_client.walk_blobs(name_starts_with= module + '/' )
 
-    if result != None:
-        wf_id = str(result['id'])
-        wf.importNewWorflowVersionToTargetEnvironment(bearer_token, wf_id, wf_version, file_path)
-    else:
-        wf.importNewWorflowToTargetEnvironment(bearer_token, wf_version, file_path)
+    for blob in blobs:
+        file_path = blob.name
+
+        workflow = file_path.replace('.json', '')
+        workflow = workflow.replace('workflows/', '')
+
+        result = next((obj for obj in wf_list if obj['name'] == workflow), None)
+
+        blob_client = container_client.get_blob_client(file_path)
+        blob_content = blob_client.download_blob().readall()
+
+        wf_version = str(json.loads(blob_content)['workflow']['version'])
+
+        if result != None:
+            wf_id = str(result['id'])
+            logging.info('true')
+            wf.importNewWorflowVersionToTargetEnvironment(bearer_token, wf_id, wf_version, file_path)
+        else:
+            logging.info('false')
+            wf.importNewWorflowToTargetEnvironment(bearer_token, wf_version, file_path)
 
     try:
         return func.HttpResponse("Success", status_code=200)
@@ -124,8 +125,8 @@ def refreshStandardObjects(req: func.HttpRequest) -> func.HttpResponse:
     url = environment.base_endpoint + 'v1/action/query'
     accounts = requests.post(
         url,
-        json=actionQueryPayload,
-        headers= {
+        json = actionQueryPayload,
+        headers = {
             'Accept-Encoding': 'gzip, deflate',
             'Accept': 'application/json; charset=utf-8',
             'Content-Type': 'application/json; charset=utf-8',
@@ -138,7 +139,7 @@ def refreshStandardObjects(req: func.HttpRequest) -> func.HttpResponse:
         url = environment.base_endpoint + 'v1/accounts/' + account.get('Id')
         requests.delete(
             url,
-            headers= {
+            headers = {
                 'Accept-Encoding': 'gzip, deflate',
                 'Accept': 'application/json; charset=utf-8',
                 'Content-Type': 'application/json; charset=utf-8',
