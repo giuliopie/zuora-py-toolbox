@@ -151,3 +151,54 @@ def refreshStandardObjects(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse("Success", status_code=200)
     except ValueError as e:
         return func.HttpResponse(f"Errore: {str(e)}", status_code=400)
+    
+@app.route(route="refresh/productcatalog")
+def refreshProductCatalog(req: func.HttpRequest) -> func.HttpResponse:
+
+    req_body = req.get_json()
+    target_environment = req_body.get('targetEnvironment')
+
+    environment = getEnvironment(target_environment)
+
+    token = Token(environment.client_id, environment.client_secret)
+    bearer_token = token.get_access_token()
+
+
+    page_counter = 1
+    while True:
+        url = environment.base_endpoint + 'v1/catalog/products'
+        
+        productCatalogResponse = requests.get(
+            url,
+            params = {
+                'page': str(page_counter),
+                'page_length': '40'
+            },
+            headers= {
+                'Accept-Encoding': 'gzip, deflate',
+                'Accept': 'application/json; charset=utf-8',
+                'Content-Type': 'application/json; charset=utf-8',
+                'Authorization': 'Bearer ' + bearer_token
+            }
+        )
+        page_counter = page_counter + 1
+
+        productCatalog = json.loads(productCatalogResponse.content).get('products')
+        for product in productCatalog:
+            url = environment.base_endpoint + 'v1/object/product/' + product.get('id')
+            requests.delete(
+                url,
+                headers= {
+                    'Accept-Encoding': 'gzip, deflate',
+                    'Accept': 'application/json; charset=utf-8',
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Authorization': 'Bearer ' + bearer_token
+                }
+            )  
+        if 'nextPage' not in json.loads(productCatalogResponse.content).keys():
+            break
+
+    try:
+        return func.HttpResponse("Success", status_code=200)
+    except ValueError as e:
+        return func.HttpResponse(f"Errore: {str(e)}", status_code=400)
